@@ -7,7 +7,7 @@ from telebot import types
 import telebot
 
 class UserPreference():
-    def __init__(self, user_id, items, epsilon=0.1):
+    def __init__(self, user_id, items, epsilon=0.8):
         self.user_id = user_id
         self.items = items # Список всех товаров
         self.epsilon = epsilon
@@ -16,21 +16,21 @@ class UserPreference():
 
     def choose_item(self):
         if random.random() < self.epsilon:
-            item_id = np.random.choice(list(self.items))
+            item_id = np.random.choice(list(self.items)) -1
             print(self.items[int(item_id)])
             return item_id, self.items[int(item_id)]  # Возвращаем ID и название товара
 
         else:
             avg_likes = {item_id: self.likes[item_id] / self.counts[item_id] if self.counts[item_id] > 0 else 0 for item_id in self.items}
             if all(value == 0 for value in avg_likes.values()):
-                item_id = np.random.choice(list(self.items))
+                item_id = np.random.choice(list(self.items)) -1
                 print(self.items[int(item_id)])
                 return item_id, self.items[int(item_id)]
 
             # Используем Softmax для выбора товара
             probs = np.exp(np.array(list(avg_likes.values())))
             probs /= np.sum(probs)
-            item_id = np.random.choice(list(self.items), p=probs)
+            item_id = np.random.choice(list(self.items), p=probs) -1
             print(self.items[int(item_id)])
             return item_id, self.items[int(item_id)]
 
@@ -80,25 +80,11 @@ current_product_index = 0
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
+    global current_product_index
+    global user_pref
     user_id = message.from_user.id
     filename = f"user_preferences_{user_id}.json"
     global current_product_index
-    show_product(message, filename, user_id)
-
-@bot.callback_query_handler(func=lambda call: True)
-def handle_callback(call):
-    recommended_item = user_pref.choose_item()
-    user_pref.update(recommended_item, call.data)
-    global current_product_index
-    current_product_index = int(recommended_item[0])
-    user_id = call.from_user.id
-    filename = f"user_preferences_{user_id}.json"
-    user_pref.save(filename)
-    show_product(call.message, filename, user_id)
-
-def show_product(message, filename, user_id):
-    global current_product_index
-    global user_pref
     product_id, product_data = list(initial_products.items())[current_product_index]
     if UserPreference.load(filename):
         user_pref, counts, likes = UserPreference.load(filename)
@@ -110,6 +96,22 @@ def show_product(message, filename, user_id):
         print(user_id)
         print("Файл с данными пользователя не найден. Создаем новый профиль.")
         user_pref = UserPreference(user_id, initial_products)
+    show_product(message, product_data)
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call):
+    recommended_item = user_pref.choose_item()
+    user_pref.update(recommended_item, call.data)
+    global current_product_index
+    current_product_index = int(recommended_item[0])
+    user_id = call.from_user.id
+    filename = f"user_preferences_{user_id}.json"
+    user_pref.save(filename)
+    product_id, product_data = list(initial_products.items())[current_product_index]
+    show_product(call.message, product_data)
+
+def show_product(message, product_data):
+
     image_path = product_data['image']
     with open(image_path, 'rb') as image_file:
         bot.send_photo(message.chat.id, image_file)
