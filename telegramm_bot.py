@@ -17,24 +17,24 @@ class UserPreference():
     def choose_item(self):
         if random.random() < self.epsilon:
             item_id = np.random.choice(list(self.items))
-            return item_id, self.items[item_id]  # Возвращаем ID и название товара
+            return item_id, self.items[int(item_id)]  # Возвращаем ID и название товара
 
         else:
             avg_likes = {item_id: self.likes[item_id] / self.counts[item_id] if self.counts[item_id] > 0 else 0 for item_id in self.items}
             if all(value == 0 for value in avg_likes.values()):
                 item_id = np.random.choice(list(self.items))
-                return item_id, self.items[item_id]
+                return item_id, self.items[int(item_id)]
 
             # Используем Softmax для выбора товара
             probs = np.exp(np.array(list(avg_likes.values())))
             probs /= np.sum(probs)
             item_id = np.random.choice(list(self.items), p=probs)
-            return item_id, self.items[int(item_id[0])]
+            return item_id, self.items[int(item_id)]
 
     def update(self, item_id, liked):
-        self.counts[item_id] += 1
-        if liked:
-            self.likes[item_id] += 1
+        self.counts[item_id[0]] += 1
+        if liked == "yes":
+            self.likes[item_id[0]] += 1
 
     def save(self, filename):
         data = {
@@ -84,15 +84,18 @@ def handle_start(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback(call):
+    print("fuck")
     recommended_item = user_pref.choose_item()
-    if call.data == 'yes':
-        user_pref.update(recommended_item, call.data)
+    user_pref.update(recommended_item, call.data)
+    global current_product_index
+    current_product_index = int(recommended_item[0])
     user_id = call.from_user.id
     filename = f"user_preferences_{user_id}.json"
     user_pref.save(filename)
     show_product(call.message, filename, user_id)
 
 def show_product(message, filename, user_id):
+    print("shit")
     global current_product_index
     global user_pref
     product_id, product_data = list(initial_products.items())[current_product_index]
@@ -100,8 +103,10 @@ def show_product(message, filename, user_id):
         user_pref, counts, likes = UserPreference.load(filename)
         user_pref.counts = counts
         user_pref.likes = likes
+        print(product_data)
         print("Данные пользователя загружены.")
     else:
+        print(user_id)
         print("Файл с данными пользователя не найден. Создаем новый профиль.")
         user_pref = UserPreference(user_id, initial_products)
     image_path = product_data['image']
