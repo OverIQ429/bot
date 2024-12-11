@@ -16,23 +16,20 @@ class UserPreference():
 
     def choose_item(self):
         if random.random() < self.epsilon:
-            item_id = np.random.choice(list(self.items)) -1
-            print(self.items[int(item_id)])
-            return item_id, self.items[int(item_id)]  # Возвращаем ID и название товара
+            item_id = np.random.choice(list(self.items))
+            return item_id, self.items[int(item_id) - 1]  # Возвращаем ID и название товара
 
         else:
             avg_likes = {item_id: self.likes[item_id] / self.counts[item_id] if self.counts[item_id] > 0 else 0 for item_id in self.items}
             if all(value == 0 for value in avg_likes.values()):
-                item_id = np.random.choice(list(self.items)) -1
-                print(self.items[int(item_id)])
-                return item_id, self.items[int(item_id)]
+                item_id = np.random.choice(list(self.items))
+                return item_id, self.items[int(item_id) -1 ]
 
             # Используем Softmax для выбора товара
             probs = np.exp(np.array(list(avg_likes.values())))
             probs /= np.sum(probs)
-            item_id = np.random.choice(list(self.items), p=probs) -1
-            print(self.items[int(item_id)])
-            return item_id, self.items[int(item_id)]
+            item_id = np.random.choice(list(self.items), p=probs)
+            return item_id, self.items[int(item_id) -1]
 
     def update(self, item_id, liked):
         self.counts[item_id[0]] += 1
@@ -107,7 +104,7 @@ def handle_callback(call):
     user_id = call.from_user.id
     filename = f"user_preferences_{user_id}.json"
     user_pref.save(filename)
-    product_id, product_data = list(initial_products.items())[current_product_index]
+    product_id, product_data = list(initial_products.items())[current_product_index-1]
     show_product(call.message, product_data)
 
 def show_product(message, product_data):
