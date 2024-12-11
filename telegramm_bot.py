@@ -17,18 +17,21 @@ class UserPreference():
     def choose_item(self):
         if random.random() < self.epsilon:
             item_id = np.random.choice(list(self.items))
+            print(self.items[int(item_id)])
             return item_id, self.items[int(item_id)]  # Возвращаем ID и название товара
 
         else:
             avg_likes = {item_id: self.likes[item_id] / self.counts[item_id] if self.counts[item_id] > 0 else 0 for item_id in self.items}
             if all(value == 0 for value in avg_likes.values()):
                 item_id = np.random.choice(list(self.items))
+                print(self.items[int(item_id)])
                 return item_id, self.items[int(item_id)]
 
             # Используем Softmax для выбора товара
             probs = np.exp(np.array(list(avg_likes.values())))
             probs /= np.sum(probs)
             item_id = np.random.choice(list(self.items), p=probs)
+            print(self.items[int(item_id)])
             return item_id, self.items[int(item_id)]
 
     def update(self, item_id, liked):
@@ -84,7 +87,6 @@ def handle_start(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback(call):
-    print("fuck")
     recommended_item = user_pref.choose_item()
     user_pref.update(recommended_item, call.data)
     global current_product_index
@@ -95,7 +97,6 @@ def handle_callback(call):
     show_product(call.message, filename, user_id)
 
 def show_product(message, filename, user_id):
-    print("shit")
     global current_product_index
     global user_pref
     product_id, product_data = list(initial_products.items())[current_product_index]
