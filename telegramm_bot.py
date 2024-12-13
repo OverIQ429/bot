@@ -8,36 +8,23 @@ from telebot import types
 import telebot
 from collections import defaultdict
 class UserPreference():
-    def __init__(self, user_id, items, epsilon=1):
+    def __init__(self, user_id, items, epsilon=0.1):
         self.user_id = user_id
         self.items = items # Список всех категорий
         self.epsilon = epsilon
         self.forspocen = items["categories"]
-        self.counts = self._initialize_counts_and_likes()
-        self.likes = self._initialize_counts_and_likes()
+        self.counts = {}
+        self.likes = {}
         self.liked_catecorian = []
         self.cock = None
         self.new_id = None
-    def _initialize_counts_and_likes(self):
-        """Инициализирует словари self.counts и self.likes с нулевыми значениями."""
-
-        counts_and_likes = defaultdict(int)  # Используем defaultdict
-        # Важно: теперь items["categories"] - это список, поэтому итерируемся по элементам списка.
-        for category in self.items.get("categories", []):
-            # Проверка, чтобы избежать ошибок, если "items" не существует или не список
-            item_id = category["id"]
-            counts_and_likes[item_id] = 0
-        return counts_and_likes
 
     def choose_item(self):
         choise_category = self.items["categories"]
         self.cock = choise_category
         if random.random() < self.epsilon:
             item_id = np.random.choice(list(choise_category))
-            for el in range(len(choise_category)):
-                if item_id["id"] == choise_category[el]["id"]:
-                    value = el
-            return item_id["id"], choise_category[value]["id"]  # Возвращаем ID и название товара
+            return item_id["id"]  # Возвращаем ID и название товара
 
         else:
             print(self.items)
@@ -56,13 +43,14 @@ class UserPreference():
 
     def update(self, item_id, liked):
         for el in range(len(self.cock)):
-            if item_id[0] == self.cock[el]["id"]:
+            if item_id == self.cock[el]["id"]:
                 value = el
-                print(value, item_id[0])
-        self.counts[value] += 1
+                print(value, item_id)
+        self.counts[str(item_id)] += 1
         if liked == "yes":
-            self.likes[value] += 1
-            name = self.cock[value]["name"]
+            print(str(item_id))
+            self.likes[str(item_id)] += 1
+            name = self.forspocen[value-1]["name"]
             self.liked_catecorian.append(name)
             if len(self.liked_catecorian) == 2:
                 new_url = "http://176.108.253.3:8080/suggest?category1='{}'&category2='{}'".format(self.liked_catecorian[0], self.liked_catecorian[1])
@@ -74,10 +62,6 @@ class UserPreference():
         if liked == "no":
             self.new_id = None
             self.liked_catecorian = []
-
-
-
-
 
     def save(self, filename):
         data = {
@@ -98,7 +82,7 @@ class UserPreference():
             data = json.load(f)
         return cls(data['user_id'], dict(data['items']), epsilon=data['epsilon']), data['counts'], data['likes']
 
-bot = telebot.TeleBot('8117985808:AAEPmdm94_aAXIkQ7EY3A96HtDX1JD6cuyc')
+bot = telebot.TeleBot('7626413724:AAHv1lH4WGII-j3Wc4e0gf-j9kx02XifEbc')
 global user_id
 global filename
 
@@ -139,7 +123,7 @@ def handle_callback(call):
     #recommended_item = recommended_category[1][rand_int]
     user_pref.update(recommended_category, call.data)
     if user_pref.new_id is not None:
-        recommended_category = (user_pref.new_id, user_pref.new_id)
+        recommended_category = user_pref.new_id
     #global current_product_index
     #current_product_index = randint()
     user_id = call.from_user.id
@@ -147,9 +131,8 @@ def handle_callback(call):
     user_pref.save(filename)
     categoory_without_c = categoory["categories"]
     for el in range(len(categoory_without_c)):
-        if recommended_category[0] == categoory_without_c[el]["id"]:
+        if recommended_category == categoory_without_c[el]["id"]:
             value = el
-    print(recommended_category[0])
     result = categoory_without_c[value]
     show_product(call.message, result)
 
